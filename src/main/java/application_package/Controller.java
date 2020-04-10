@@ -20,20 +20,46 @@ public class Controller {
     private List<Data> list=new ArrayList<>();
     @GetMapping("/")
     public String Home(){
-        return "HELLO";
+        return "endpoints------generatingOTP-->type=post(for inserting value";
     }
     @PostMapping(path = "/generatingOTP")
-    public void generate(@RequestBody RequestData requestData){
+    public String generate(@RequestBody RequestData requestData){
       RequestData rd=requestData;
         String s=rd.getId();
         Random rand = new Random();
         int n=rand.nextInt(999999);
-       list.add(new Data(s,n+""));
-    }
-    @PostMapping("/getOTP")
-    public List<Data> verify(@RequestBody Data input){
+        int flag=0;
+        for(Data data:list){
+            if(data.getId().equals(requestData.getId())){
+                data.setGeneratedOTP(n+"");
+                flag=1;
+                break;
+            }
+        }
 
-       return list;
+    if(flag==0) {
+    list.add(new Data(s, n + ""));
+    return n + "";
+    }
+    else{
+        return n+"";
+    }
+    }
+    @PostMapping("/verify")
+    public String verify(@RequestBody Data input){
+        String OTP=input.getGeneratedOTP();
+        String id=input.getId();
+        for(Data data:list){
+          if(data.getId().equals(id)) {
+              if (data.getGeneratedOTP().equals(OTP)) {
+                  return "OTP Verified";
+              } else {
+                  return "Wrong OTP!!! Try Again!!";
+              }
+          }
+      }
+
+       return "User Not Found";
     }
 
 

@@ -1,9 +1,9 @@
 package application_package;
 
 public class Data {
-    String id;
-    String generatedOTP;
-    String timeStamp;
+    private String id;
+    private String generatedOTP;
+    private String timeStamp;
 
     public String getId() {
         return id;
