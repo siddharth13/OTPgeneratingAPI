@@ -64,23 +64,23 @@ public class Controller {
     @GetMapping(path = "/generateOTP")
     public void generate(RequestData requestData){
         Table table = dynamoDB.getTable("OTPDatabase");
-        String s=requestData.getId();
+        String id=requestData.getId();
         System.err.println(requestData.getId());
         Random rand = new Random();
         String otp= ""+(rand.nextInt(899999) + 100000);
         String timeinmilli=String.valueOf(System.currentTimeMillis());
         try {
-            if(isValidPhoneNumber(s)) {
+            if(isValidPhoneNumber(id)) {
                 PutItemOutcome outcome = table
-                        .putItem(new Item().withPrimaryKey("ID", s).with("OTP", otp).with("TIMESTAMP", timeinmilli));
-                 sendSMS(s,otp);
+                        .putItem(new Item().withPrimaryKey("ID", id).with("OTP", otp).with("TIMESTAMP", timeinmilli));
+                 sendSMS(id,otp);
             }
             else{
                 System.err.println("the phone no. is not valid");
             }
         }
         catch (Exception e){
-            System.err.println("Unable to add item: " + s + " " + otp);
+            System.err.println("Unable to add item: " + id + " " + otp);
             System.err.println(e.getMessage());
         }
 
