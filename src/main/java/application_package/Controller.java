@@ -1,8 +1,12 @@
 package application_package;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.MessageAttributeValue;
+import com.amazonaws.services.sns.model.PublishRequest;
+import com.amazonaws.services.sns.model.PublishResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,28 +28,62 @@ public class Controller {
             .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("https://dynamodb.us-west-2.amazonaws.com", "us-west-2"))
             .build();
     DynamoDB dynamoDB = new DynamoDB(client);
-
+    AmazonSNSClient snsClient = new AmazonSNSClient();
+    public String sendSMS(String phoneNumber,String otp){
+        // sns.eu-central-1.amazonaws.com
+        String message = "Your OTP is "+otp+" .";
+       // String phoneNumber = "+917397226050";
+        phoneNumber="+91"+phoneNumber;
+        Map<String, MessageAttributeValue> smsAttributes =
+                new HashMap<String, MessageAttributeValue>();
+        //<set SMS attributes>
+        smsAttributes.put("AWS.SNS.SMS.MaxPrice", new MessageAttributeValue()
+                .withStringValue("0.0050") //Sets the max price to 0.50 USD.
+                .withDataType("Number"));
+        smsAttributes.put("AWS.SNS.SMS.SMSType", new MessageAttributeValue()
+                .withStringValue("Transactional") //Sets the type to promotional.
+                .withDataType("String"));
+        PublishResult result = snsClient.publish(new PublishRequest()
+                .withMessage(message)
+                .withPhoneNumber(phoneNumber)
+                .withMessageAttributes(smsAttributes));
+        System.out.println(result); // Prints the message ID.
+        return result.toString();
+     // return phoneNumber;
+    }
+    public static boolean isValidPhoneNumber(String s)
+    {
+        Pattern p = Pattern.compile("(0/91)?[7-9][0-9]{9}");
+        Matcher m = p.matcher(s);
+        return (m.find() && m.group().equals(s));
+    }
     @GetMapping("/")
     public String Home(){
         return "endpoints------generatingOTP-->type=post(for inserting value";
     }
     @GetMapping(path = "/generateOTP")
-    public String generate( RequestData requestData){
-            Table table = dynamoDB.getTable("OTPDatabase");
-            RequestData rd=requestData;
-            String s=rd.getId();
-            Random rand = new Random();
-            String otp= ""+(rand.nextInt(899999) + 100000);
-            String timeinmilli=String.valueOf(System.currentTimeMillis());
-            try {
+    public void generate(RequestData requestData){
+        Table table = dynamoDB.getTable("OTPDatabase");
+        String s=requestData.getId();
+        System.err.println(requestData.getId());
+        Random rand = new Random();
+        String otp= ""+(rand.nextInt(899999) + 100000);
+        String timeinmilli=String.valueOf(System.currentTimeMillis());
+        try {
+            if(isValidPhoneNumber(s)) {
                 PutItemOutcome outcome = table
-                        .putItem(new Item().withPrimaryKey("ID",s).with("OTP",otp).with("TIMESTAMP",timeinmilli));
+                        .putItem(new Item().withPrimaryKey("ID", s).with("OTP", otp).with("TIMESTAMP", timeinmilli));
+                 sendSMS(s,otp);
             }
-            catch (Exception e){
-                System.err.println("Unable to add item: " + s + " " + otp);
-                System.err.println(e.getMessage());
+            else{
+                System.err.println("the phone no. is not valid");
             }
-     return otp;
+        }
+        catch (Exception e){
+            System.err.println("Unable to add item: " + s + " " + otp);
+            System.err.println(e.getMessage());
+        }
+
     }
     @PostMapping("/verifyOTP")
     public String verify(@RequestBody Data input) {
@@ -75,8 +113,8 @@ public class Controller {
                 return "Connection Error";
             }
     }
-    @PostMapping("/regenerateOTP")
-    public String regenerate(@RequestBody RequestData requestData){
+    @GetMapping("/regenerateOTP")
+    public void regenerate(RequestData requestData){
         Table table = dynamoDB.getTable("OTPDatabase");
         GetItemSpec spec = new GetItemSpec().withPrimaryKey("ID", requestData.getId());
         Random rand=new Random();
@@ -84,16 +122,38 @@ public class Controller {
         try {
             Item outcome = table.getItem(spec);
             if(outcome==null){
-                return "User not found";
+                System.err.println("User Not Found");
             }
            else{
                 String time=String.valueOf(System.currentTimeMillis());
                 table.putItem(new Item().withPrimaryKey("ID",requestData.getId()).with("OTP",otp).with("TIMESTAMP",time));
-                return otp;
+                sendSMS(requestData.getId(),otp);
             }
         } catch (Exception e) {
             System.err.println(e.getMessage());
-            return "Connection Error";
+            System.err.println("Connection Problem");
+        }
+    }
+    @GetMapping("/resendOTP")
+    public void resend(RequestData requestData){
+        Table table = dynamoDB.getTable("OTPDatabase");
+        GetItemSpec spec = new GetItemSpec().withPrimaryKey("ID", requestData.getId());
+
+
+        try {
+            Item outcome = table.getItem(spec);
+            String otp=outcome.get("OTP").toString();
+            if(outcome==null){
+                System.err.println("User Not Found");
+            }
+            else{
+                String time=String.valueOf(System.currentTimeMillis());
+                table.putItem(new Item().withPrimaryKey("ID",requestData.getId()).with("OTP",otp).with("TIMESTAMP",time));
+                sendSMS(requestData.getId(),otp);
+            }
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.err.println("Connection Problem");
         }
     }
 
