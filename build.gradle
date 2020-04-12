@@ -4,6 +4,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.6.RELEASE")
+        
     }
 }
 plugins {
@@ -33,9 +34,14 @@ targetCompatibility = 1.8
 
 dependencies {
 
-    compile group: 'com.amazonaws', name: 'aws-java-sdk-dynamodb', version: '1.11.163'
     compile "org.springframework.boot:spring-boot-starter-web"
-    compile 'com.amazonaws:aws-java-sdk-dynamodb'
+
+    // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-dynamodb
+	compile group: 'com.amazonaws', name: 'aws-java-sdk-dynamodb', version: '1.11.762'
+    
+    // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-sns
+	compile group: 'com.amazonaws', name: 'aws-java-sdk-sns', version: '1.11.762'
+    
     testCompile("junit:junit")
 }
 
