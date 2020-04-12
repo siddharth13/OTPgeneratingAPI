@@ -1,7 +1,14 @@
 package application_package;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
@@ -10,17 +17,6 @@ import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PutItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
-import com.amazonaws.services.dynamodbv2.model.*;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.*;
 @RestController
 public class Controller {
 
@@ -28,12 +24,13 @@ public class Controller {
             .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("https://dynamodb.us-west-2.amazonaws.com", "us-west-2"))
             .build();
     DynamoDB dynamoDB = new DynamoDB(client);
+
     @GetMapping("/")
     public String Home(){
         return "endpoints------generatingOTP-->type=post(for inserting value";
     }
-    @PostMapping(path = "/generateOTP")
-    public String generate(@RequestBody RequestData requestData){
+    @GetMapping(path = "/generateOTP")
+    public String generate( RequestData requestData){
             Table table = dynamoDB.getTable("OTPDatabase");
             RequestData rd=requestData;
             String s=rd.getId();
@@ -54,11 +51,13 @@ public class Controller {
     public String verify(@RequestBody Data input) {
         Table table = dynamoDB.getTable("OTPDatabase");
         GetItemSpec spec = new GetItemSpec().withPrimaryKey("ID", input.getId());
+
             try {
                 Item outcome = table.getItem(spec);
                 if (outcome == null) {
                     return "User not found";
                 } else {
+
                 long currenttime=System.currentTimeMillis();
                 long timestamp= Long.parseLong(outcome.get("TIMESTAMP").toString());
                 if(currenttime-timestamp>180000){
@@ -69,6 +68,7 @@ public class Controller {
                 } else {
                     return "Wrong OTP";
                 }
+
             }
             } catch (Exception e) {
                 System.err.println(e.getMessage());
