@@ -23,14 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.*;
 @RestController
 public class Controller {
-    private List<Data> list=new ArrayList<>();
-    private static final AWSCredentials AWS_CREDENTIALS;
-    static {
-        AWS_CREDENTIALS = new BasicAWSCredentials(
-                "AKIA6J4QTU2L2CUFSGWI",
-                "RUVsw0wAoOgagbueE5mXhoj0PexFWndZvKRUNh8f"
-        );
-    }
+
     AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard()
             .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("https://dynamodb.us-west-2.amazonaws.com", "us-west-2"))
             .build();
@@ -61,28 +54,21 @@ public class Controller {
     public String verify(@RequestBody Data input) {
         Table table = dynamoDB.getTable("OTPDatabase");
         GetItemSpec spec = new GetItemSpec().withPrimaryKey("ID", input.getId());
-
             try {
                 Item outcome = table.getItem(spec);
                 if (outcome == null) {
                     return "User not found";
                 } else {
-
                 long currenttime=System.currentTimeMillis();
                 long timestamp= Long.parseLong(outcome.get("TIMESTAMP").toString());
                 if(currenttime-timestamp>180000){
                     return "OTP expired";
                 }
-
                 if (outcome.get("OTP").toString().equals(input.getGeneratedOTP())) {
                     return "OTP verified";
                 } else {
                     return "Wrong OTP";
                 }
-
-
-
-
             }
             } catch (Exception e) {
                 System.err.println(e.getMessage());
@@ -93,17 +79,17 @@ public class Controller {
     public String regenerate(@RequestBody RequestData requestData){
         Table table = dynamoDB.getTable("OTPDatabase");
         GetItemSpec spec = new GetItemSpec().withPrimaryKey("ID", requestData.getId());
-
+        Random rand=new Random();
+        String otp= ""+(rand.nextInt(899999) + 100000);
         try {
             Item outcome = table.getItem(spec);
             if(outcome==null){
                 return "User not found";
             }
            else{
-
                 String time=String.valueOf(System.currentTimeMillis());
-                table.putItem(new Item().withPrimaryKey("ID",requestData.getId()).with("OTP",outcome.get("OTP").toString()).with("TIMESTAMP",time));
-                return outcome.get("OTP").toString();
+                table.putItem(new Item().withPrimaryKey("ID",requestData.getId()).with("OTP",otp).with("TIMESTAMP",time));
+                return otp;
             }
         } catch (Exception e) {
             System.err.println(e.getMessage());
